@@ -1,0 +1,21 @@
+Haverá  duas partes das instruções a primeira parte junto com a aula de análise gráfica.
+A segunda parte das instruções será disponibilizada no último dia de  aula.
+
+A entrega é composta por
+-Conjunto de dados obtidos externamente e utilizados para enriquecimento
+-Conjunto de scripts utilizados para análise
+-Conjunto de Notebooks explicando as análises
+-Aplicação Shiny que permite a navegação nos notebooks
+-Pacote R para carregamento e distribuição
+
+
+O objetivo é verificar se o grupo
+- É capaz de fazer análises estatísticas utilizando o R
+- Expor os resultados de suas análises
+- Fazer regressões simples
+- Interpretação básica de uma regressão
+- Modelar problemas para aprendizado de máquina
+- Criar scripts complexos em R
+
+Estima-se pelo menos 40 horas de trabalho por grupo
+- 10 horas por integrante
