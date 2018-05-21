@@ -1,3 +1,8 @@
+
+#referencias
+#https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-curious
+
+
 # Verify if all needed packages are installed and active
 mypkgdf <- data.frame(installed.packages())
 
@@ -61,17 +66,37 @@ if ('dplyr' %in% mypkgdf$Package) {
   library(dplyr)
 }
 
-train_db <- read_csv("train/train.csv",locale = locale(encoding = "ISO-8859-1"))
+#Verify if package shiny installed
+if ('shiny' %in% mypkgdf$Package) {
+  print("package shiny is installed")
+  library(shiny)
+} else {
+  #install package shiny
+  install.packages("shiny")
+  library(shiny)
+}
+
+#Verify if package lubridate installed
+if ('lubridate' %in% mypkgdf$Package) {
+  print("package lubridate is installed")
+  library(lubridate)
+} else {
+  #install package lubridate
+  install.packages("lubridate")
+  library(lubridate)
+}
+
+train_db <- read_csv("data/train/train.csv",locale = locale(encoding = "ISO-8859-1"))
 
 
-#df = data.frame(train_db)
+df = data.frame(train_db)
 
 # Adicionar uma coluna dayofweek para colocar qual o dia da semana
 df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
 df$dayofweek_dropoff <- weekdays(as.Date(df$dropoff_datetime))
 
 #Visualizar os dados
-#View(df)
+View(df)
 #head(df)
 
 #locationsteste <- st_as_sf(locations, coords = c(-73.98519,40.75818), crs = 4326)
