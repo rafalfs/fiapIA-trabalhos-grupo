@@ -51,20 +51,33 @@ if ('sf' %in% mypkgdf$Package) {
   library(sf)
 }
 
-#test_db <- read_csv("train/train.csv",locale = locale(encoding = "ISO-8859-1"))
-#View(test_db)
+#Verify if package dplyr installed
+if ('dplyr' %in% mypkgdf$Package) {
+  print("package dplyr is installed")
+  library(dplyr)
+} else {
+  #install package dplyr
+  install.packages("dplyr")
+  library(dplyr)
+}
 
-#df = data.frame(test_db)
+train_db <- read_csv("train/train.csv",locale = locale(encoding = "ISO-8859-1"))
+
+
+#df = data.frame(train_db)
 
 # Adicionar uma coluna dayofweek para colocar qual o dia da semana
-#df$dayofweek <- weekdays(as.Date(df$pickup_datetime))
+df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
+df$dayofweek_dropoff <- weekdays(as.Date(df$dropoff_datetime))
 
 #Visualizar os dados
 #View(df)
+#head(df)
 
 #locationsteste <- st_as_sf(locations, coords = c(-73.98519,40.75818), crs = 4326)
 #mapview(locationsteste)
 #?mapview
+
 
 #d <- data.frame(lat=c(50.659631, 50.607213, 50.608129),
 #                lon=c(3.09319, 3.011473, 3.031529))
@@ -117,9 +130,6 @@ poi15_coord <- data.frame(lat=c(40.750298),long=c(-73.993324))
 
 
 
-lat <- c(40.600000,40.730610)
-long <- c(-73.013421,	-73.935242)
-bbox <- make_bbox(long,lat,f=0.05)
 b <- get_map("New York city,United States",maptype="terrain",source="google",force = ifelse(source == "google", TRUE, TRUE))
 
 
@@ -140,6 +150,22 @@ ggmap(b) + geom_point(data=poi1_coord, aes(x=long, y=lat, color = "red", size = 
            geom_point(data=poi15_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE)
 
 
+#Plot numero de corridas por numero de passageiros
+# groupby do numero de passageiros
+groupbypass <- group_by(df, passenger_count)
+countgroupbypass <- summarise(groupbypass, count = n())
+df_pass <- data.frame(c(countgroupbypass))
+#View(df_pass)
 
 
+plot(x = df_pass$passenger_count, y = df_pass$count)
 
+
+#Plot numero de corridas pelo dia da semana
+# groupby do numero de passageiros
+groupbyDOW <- group_by(df, dayofweek_pickup)
+countgroupbyDOW <- summarise(groupbyDOW, count = n())
+df_DOW <- data.frame(c(countgroupbyDOW))
+View(df_DOW)
+
+plot(x = df_DOW$dayofweek_pickup, y = df_DOW$count)
