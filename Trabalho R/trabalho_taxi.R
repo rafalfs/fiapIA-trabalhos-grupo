@@ -66,40 +66,80 @@ if ('sf' %in% mypkgdf$Package) {
 #mapview(locationsteste)
 #?mapview
 
+#d <- data.frame(lat=c(50.659631, 50.607213, 50.608129),
+#                lon=c(3.09319, 3.011473, 3.031529))
+
 # Point of interest
 #1. John F Kennedy Airport
-poi1_lat <- c(40.6441666667)
-poi1_long <- c(-73.7822222222)
+poi1_coord <- data.frame(lat=c(40.6441666667),long=c(-73.7822222222))
+
+#2. Central Park
+poi2_coord <- data.frame(lat=c(40.785091),long=c(-73.968285))
+
+#3. Times Square
+poi3_coord <- data.frame(lat=c(40.758896),long=c(-73.985130))
+
+#4. Broadway Theatre
+poi4_coord <- data.frame(lat=c(40.753496986),long=c(-73.985162726))
+
+#5. Wall Street Charging Bull
+poi5_coord <- data.frame(lat=c(40.705576),long=c(-74.013421))
+
+#6. Rockefeller Center
+poi6_coord <- data.frame(lat=c(40.758740),long=c(-73.978674))
+
+#7. Macy'S Herald Square Store
+poi7_coord <- data.frame(lat=c(40.750782),long=c(-73.988959))
+
+#8. Bank of America Tower
+poi8_coord <- data.frame(lat=c(40.755604),long=c(-73.984932))
+
+#9. NATIONAL SEPTEMBER 11 MEMORIAL
+poi9_coord <- data.frame(lat=c(40.7070138386),long=c(-74.008166634))
+
+#10. Bryant Park
+poi10_coord <- data.frame(lat=c(40.755603),long=c(-73.984931))
+
+#11. Statue of Liberty National Monument
+poi11_coord <- data.frame(lat=c(40.689247),long=c(-74.044502))
+
+#12. AMERICAN MUSEUM OF NATURAL HISTORY
+poi12_coord <- data.frame(lat=c(40.7749969),long=c(-73.971496114))
+
+#13. World Trade Center'S Liberty Park
+poi13_coord <- data.frame(lat=c(40.710440),long=c(-74.013851))
+
+#14. World Trade Center'S Liberty Park
+poi14_coord <- data.frame(lat=c(40.7558303),long=c(-73.97416277))
+
+#15. Madison Square Garden
+poi15_coord <- data.frame(lat=c(40.750298),long=c(-73.993324))
 
 
-lat <- c(40.75818,40.74932)
-long <- c(-73.98519,-73.97258)
+
+lat <- c(40.600000,40.730610)
+long <- c(-73.013421,	-73.935242)
 bbox <- make_bbox(long,lat,f=0.05)
-b <- get_map(bbox,maptype="terrain",source="google")
-
-ggmap(b)
+b <- get_map("New York city,United States",maptype="terrain",source="google",force = ifelse(source == "google", TRUE, TRUE))
 
 
-# m <- get_map("New York",zoom=12,maptype="terrain",source="google")
-# ggmap(m)
+ggmap(b) + geom_point(data=poi1_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi2_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi3_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi4_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi5_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi6_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi7_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi8_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi9_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi10_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi11_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi12_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi13_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi14_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
+           geom_point(data=poi15_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE)
 
-latpoint <- data.frame(40.754)
-longpoint <- data.frame(-73.9800)
 
-ggmap(b) +
-  geom_point(data = bbox, aes(x = longpoint, y = latpoint, fill = "red", alpha = 0.8), size = 5, shape = 21) +
-  guides(fill=FALSE, alpha=FALSE, size=FALSE)
-
-
-d <- data.frame(lat=c(50.659631, 50.607213, 50.608129),
-                lon=c(3.09319, 3.011473, 3.031529))
-
-Lille <- get_map("Lille,France", zoom=12)
-
-p <- ggmap(Lille)
-p <- p + geom_point(data=d, aes(x=lon, y=lat, fill = "red", alpha = 0.8),size=5)
-p
-ggplot_build(p)
 
 
 
