@@ -95,6 +95,21 @@ df = data.frame(train_db)
 df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
 df$dayofweek_dropoff <- weekdays(as.Date(df$dropoff_datetime))
 
+df$day_pickup <- day(df$pickup_datetime)
+df$month_pickup <- month(df$pickup_datetime)
+df$hour_pickup <- hour(df$pickup_datetime)
+df$minute_pickup <- minute(df$pickup_datetime)
+df$second_pickup <- second(df$pickup_datetime)
+
+df$day_dropoff <- day(df$dropoff_datetime)
+df$month_dropoff <- month(df$dropoff_datetime)
+df$hour_dropoff <- hour(df$dropoff_datetime)
+df$minute_dropoff <- minute(df$dropoff_datetime)
+df$second_dropoff <- second(df$dropoff_datetime)
+
+df$tripdurationinhour <- seconds_to_hms(df$trip_duration)
+
+
 #Visualizar os dados
 View(df)
 #head(df)
@@ -181,16 +196,47 @@ groupbypass <- group_by(df, passenger_count)
 countgroupbypass <- summarise(groupbypass, count = n())
 df_pass <- data.frame(c(countgroupbypass))
 #View(df_pass)
+plot(x = df_pass$passenger_count, y = df_pass$count, main = "Número de passageiros por corrida",
+     xlab = "Numero de passageiros", ylab = "Número de corridas")
 
 
-plot(x = df_pass$passenger_count, y = df_pass$count)
-
-
-#Plot numero de corridas pelo dia da semana
-# groupby do numero de passageiros
+#Plot numero de corridas por dia da semana
+# groupby por dia da semana
 groupbyDOW <- group_by(df, dayofweek_pickup)
 countgroupbyDOW <- summarise(groupbyDOW, count = n())
 df_DOW <- data.frame(c(countgroupbyDOW))
 View(df_DOW)
 
-plot(x = df_DOW$dayofweek_pickup, y = df_DOW$count)
+plot(x = df_DOW$dayofweek_pickup, y = df_DOW$count, main = "Número de corridas pelo dia da semana",
+     xlab = "Nome do dia da semana", ylab = "Número de corridas")
+
+
+#Plot numero de corridas por mes
+# groupby do numero dos meses
+groupbyDOM <- group_by(df, month_pickup)
+countgroupbyDOM <- summarise(groupbyDOM, count = n())
+df_DOM <- data.frame(c(countgroupbyDOM))
+View(df_DOM)
+
+plot(x = df_DOM$month_pickup, y = df_DOM$count, main = "Número de corridas por mês",
+     xlab = "Numero do mês", ylab = "Número de corridas")
+
+
+#Plot numero de corridas pelo hora do dia
+# groupby do numero da hora do dia
+groupbyHOD <- group_by(df, hour_pickup)
+countgroupbyHOD <- summarise(groupbyHOD, count = n())
+df_HOD <- data.frame(c(countgroupbyHOD))
+View(df_HOD)
+
+plot(x = df_HOD$hour_pickup, y = df_HOD$count, main = "Número de corridas por horas do dia"
+     ,xlab = "Horas do dia", ylab = "Número de corridas")
+
+#Plot Tempo médio das corridas pela hora do dia
+countgroupbyHOD1 <- summarise(groupbyHOD, Mean = mean(trip_duration))
+countgroupbyHOD1
+View(countgroupbyHOD1)
+plot(x = df_HOD$hour_pickup, y = countgroupbyHOD1$Mean, main = "Tempo médio das corridas pela hora do dia"
+     ,xlab = "Horas do dia", ylab = "Tempo médio das corridas")
+
+
