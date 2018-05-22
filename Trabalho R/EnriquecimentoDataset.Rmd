@@ -1,0 +1,80 @@
+---
+title: "Enriquecimento Dataset"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Enriquecimento do dataset com dados meteorológicos
+
+### Importação das bibliotecas
+
+```{r}
+import = function(libName){
+  result = tryCatch({
+    library(libName, character.only = T)
+  }, error = function(e) {
+    install.packages(libName, repos = "http://cran.us.r-project.org")
+    library(libName, character.only = T)
+  })
+}
+
+import("readr")
+import("ggmap")
+import("ggplot2")
+import("mapview")
+import("sf")
+import("dplyr")
+import("shiny")
+import("lubridate")
+import("weathermetrics")
+import("magrittr")
+```
+
+### Carga dos datasets
+
+Primeiramente fizemos a carga do dataset de treino
+
+```{r}
+train_db = read_csv("data/train/train.csv",locale = locale(encoding = "ISO-8859-1"))
+df_train = data.frame(train_db)
+```
+
+E em seguida dos datasets secundários utilizados para enriquecimento da nossa base
+
+```{r}
+weather_db = read_csv("data/datasets/weather_nyc_2016.csv",locale = locale(encoding = "ISO-8859-1"))
+df_weather = data.frame(weather_db)
+```
+
+### Preparação dos dados de enriquecimento
+
+Fizemos o tratamento dos dados climáticos para converter a data para um objeto do lubridate, conversão da temperatura de fahrenheit para celcius, substituir o "T" que indica um baixo índice para um valor pequeno e fizemos uma flag indicando se choveu ou se nevou
+
+```{r}
+df_weather %>%
+  mutate(date = dmy(date),
+         rain = as.numeric(ifelse(precipitation == "T", "0.01", precipitation)),
+         snow_fall = as.numeric(ifelse(snow.fall == "T", "0.01", snow.fall)),
+         snow_depth = as.numeric(ifelse(snow.depth == "T", "0.01", snow.depth)),
+         all_precip = snow_fall + rain,
+         has_snow = (snow_fall > 0) | (snow_depth > 0),
+         has_rain = rain > 0,
+         max_temp = fahrenheit.to.celsius(maximum.temerature),
+         min_temp = fahrenheit.to.celsius(minimum.temperature),
+         avg_temp = fahrenheit.to.celsius(average.temperature)) -> df_weather
+```
+
+Conversão da data do dataset de treino para lubridate e join dos dois datasets para acrescentar as colunas de dados meteorológicos
+
+```{r}
+df_train %>% 
+  mutate(date = ymd(pickup_datetime)) -> df_train
+
+weather <- df_weather %>%
+  select(date, rain, snow_fall, all_precip, has_snow, has_rain, snow_depth, max_temp, min_temp)
+
+df_train = left_join(df_train, weather, by = "date")
+```
