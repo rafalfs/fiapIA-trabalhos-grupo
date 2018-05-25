@@ -9,31 +9,9 @@ import = function(libName){
 
 import("shiny")
 import("here")
-import("magrittr")
-import("knitr")
 import("shinydashboard")
 
 current.dir = here()
-
-includeRmd <- function(path, r_env = parent.frame()) {
-  encoding = getOption("shiny.site.encoding", default = "UTF-8")
-  paste0(
-    readLines(path, warn = FALSE, encoding = encoding),
-    collapse = '\n'
-  ) %>%
-    knit2html(
-      text = .,
-      fragment.only = TRUE,
-      envir = r_env,
-      options = "",
-      stylesheet = "",
-      encoding = encoding,
-      quiet = T
-    ) %>%
-    gsub("&lt;!--/html_preserve--&gt;","",.) %>%  ## knitr adds this
-    gsub("&lt;!--html_preserve--&gt;","",.) %>%   ## knitr adds this
-    HTML
-}
 
 ui <- dashboardPage(
   dashboardHeader(title = "Menu"),
@@ -46,11 +24,10 @@ ui <- dashboardPage(
   dashboardBody(
     tabItems(
       tabItem(tabName = "home",
-        includeRmd(paste0(current.dir, "/index.Rmd"))
+        includeHTML(paste0(current.dir, "/index.html"))
       ),
-      
       tabItem(tabName = "intro",
-        includeRmd(paste0(current.dir, "/Aula01.Rmd"))
+              includeHTML(paste0(current.dir, "/intro.html"))
       )
     )
   ),
