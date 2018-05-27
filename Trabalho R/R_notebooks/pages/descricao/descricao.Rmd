@@ -1,0 +1,20 @@
+---
+title: "Descrição"
+output: html_notebook
+---
+
+### Descrição do trabalho
+
+Fazer analises e modelagem de ML com conteudo aprendido na matéria **Programando IA com R** no curso de Artificial Intelligence & Machine Learning na FIAP
+
+
+### Dados Utilizados
+
+O DataSet utilizado para esse trabalho foi fornecido pelo próprio professor da Discipina.
+
+Se trata de dados sobre corridas de taxi na cidade de Nova Iorque nos Estados Unidos (NY - EUA). 
+
+
+### Objetivo do trabalho
+
+O trabalho tem a finalidade de avaliar a capacidade dos 4 integrantes do grupo de fazer códigos complexos, analises estatisticas, exposição de resultados, regressões simples e modelagens de aprendizado de máquina em R.

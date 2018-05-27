@@ -1,0 +1,23 @@
+---
+title: "Grupo"
+output: html_notebook
+---
+
+
+O Grupo é composto por 4 integrantes. São eles:
+
+
+
+**Nome:** Bruno Lino Andreo Leiros - **RM:** 330349
+
+**Nome:** Guilherme - **RM:** XXXXXX
+
+**Nome:** Juliano Tadeu Costa - **RM:** 330305
+
+**Nome:** Rafael Loureiro Ferreira da Silva - **RM:** 330357
+
+
+
+# Disciplina
+
+Este trabalho é referente a disciplina **Programação de IA com R**, ministrada pelo **prof. Elthon Manhas de Freitas** no curso de MBA de Artificial Intelligence & Machine Learning - Tura 1IA da FIAP.
