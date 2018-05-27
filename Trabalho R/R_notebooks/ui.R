@@ -12,7 +12,7 @@ ui <- navbarPage(
   "Trabalho R",
   tabPanel("Grupo", includeHTML("./pages/grupo/groups.nb.html")),
   tabPanel("Descrição", includeHTML("./pages/descricao/descricao.nb.html")),
-  tabPanel("Enriquecimento do Dataset", includeMarkdown("./pages/enriquecimento/EnriquecimentoDataset.Rmd")),
+  tabPanel("Enriquecimento do Dataset", includeHTML("./pages/enriquecimento/EnriquecimentoDataset.html")),
   tabPanel("Analises", includeMarkdown("./pages/analises/analises.Rmd")),
   tabPanel("Subsets"),
   tabPanel("Analises Graficas"),
