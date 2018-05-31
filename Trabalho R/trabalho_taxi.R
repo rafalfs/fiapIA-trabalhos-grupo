@@ -1,95 +1,33 @@
-
-#referencias
-#https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-curious
-
-
 # Verify if all needed packages are installed and active
-mypkgdf <- data.frame(installed.packages())
 
-#Verify if package readr installed
-if ('readr' %in% mypkgdf$Package) {
-  print("package readr is installed")
-  library(readr)
-} else {
-  #install package readr
-  install.packages("readr")
-  library(readr)
+import = function(libName){
+  result = tryCatch({
+    library(libName, character.only = T)
+  }, error = function(e) {
+    install.packages(libName, repos = "http://cran.us.r-project.org")
+    library(libName, character.only = T)
+  })
 }
 
-#Verify if package ggmap installed
-if ('ggmap' %in% mypkgdf$Package) {
-  print("package ggmap is installed")
-  library(ggmap)
-} else {
-  #install package ggmap
-  install.packages("ggmap")
-  library(ggmap)
-}
-
-#Verify if package ggplot2 installed
-if ('ggplot2' %in% mypkgdf$Package) {
-  print("package ggplot2 is installed")
-  library(ggplot2)
-} else {
-  #install package ggplot2
-  install.packages("ggplot2")
-  library(ggplot2)
-}
-
-#Verify if package mapview from google maps view installed
-if ('mapview' %in% mypkgdf$Package) {
-  print("package mapview is installed")
-  library(mapview)
-} else {
-  #install package mapview
-  install.packages("mapview")
-  library(mapview)
-}
-
-#Verify if package sf installed
-if ('sf' %in% mypkgdf$Package) {
-  print("package sf is installed")
-  library(sf)
-} else {
-  #install package sf
-  install.packages("sf")
-  library(sf)
-}
-
-#Verify if package dplyr installed
-if ('dplyr' %in% mypkgdf$Package) {
-  print("package dplyr is installed")
-  library(dplyr)
-} else {
-  #install package dplyr
-  install.packages("dplyr")
-  library(dplyr)
-}
-
-#Verify if package shiny installed
-if ('shiny' %in% mypkgdf$Package) {
-  print("package shiny is installed")
-  library(shiny)
-} else {
-  #install package shiny
-  install.packages("shiny")
-  library(shiny)
-}
-
-#Verify if package lubridate installed
-if ('lubridate' %in% mypkgdf$Package) {
-  print("package lubridate is installed")
-  library(lubridate)
-} else {
-  #install package lubridate
-  install.packages("lubridate")
-  library(lubridate)
-}
-
-train_db <- read_csv("data/train/train.csv",locale = locale(encoding = "ISO-8859-1"))
+import("readr")
+import("ggmap")
+import("ggplot2")
+import("mapview")
+import("sf")
+import("dplyr")
+import("shiny")
+import("lubridate")
+import("weathermetrics")
+import("magrittr")
+import("plotly")
+import("geosphere")
 
 
+train_db <- read_csv("train/train.csv",locale = locale(encoding = "ISO-8859-1"))
 df = data.frame(train_db)
+
+#weather_db = read_csv("train/weather_nyc_2016.csv",locale = locale(encoding = "ISO-8859-1"))
+#df_weather = data.frame(weather_db)
 
 # Adicionar uma coluna dayofweek para colocar qual o dia da semana
 df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
@@ -107,8 +45,14 @@ df$hour_dropoff <- hour(df$dropoff_datetime)
 df$minute_dropoff <- minute(df$dropoff_datetime)
 df$second_dropoff <- second(df$dropoff_datetime)
 
-df$tripdurationinhour <- seconds_to_hms(df$trip_duration)
 
+td <- seconds_to_period(df$trip_duration)
+abc <- sprintf('%02d %02d:%02d:%02d', day(td), td@hour, minute(td), second(td))
+df$tripdurationinhour <- abc
+
+
+#distancia entre pickup and dropoff
+#df$begin_end_dist_meter <- distCosine(c(df$pickup_longitude, df$pickup_latitude), c(df$dropoff_longitude, df$dropoff_latitude))
 
 #Visualizar os dados
 View(df)
@@ -173,21 +117,21 @@ poi15_coord <- data.frame(lat=c(40.750298),long=c(-73.993324))
 b <- get_map("New York city,United States",maptype="terrain",source="google",force = ifelse(source == "google", TRUE, TRUE))
 
 
-ggmap(b) + geom_point(data=poi1_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi2_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi3_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi4_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi5_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi6_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi7_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi8_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi9_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi10_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi11_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi12_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi13_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi14_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE) +
-           geom_point(data=poi15_coord, aes(x=long, y=lat, color = "red", size = 2.5), shape = 23, fill="blue", show.legend = FALSE)
+ggmap(b) + geom_point(data=poi1_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi2_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi3_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi4_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi5_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi6_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi7_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi8_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi9_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi10_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi11_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi12_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi13_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi14_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+           geom_point(data=poi15_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE)
 
 
 #Plot numero de corridas por numero de passageiros
@@ -196,19 +140,37 @@ groupbypass <- group_by(df, passenger_count)
 countgroupbypass <- summarise(groupbypass, count = n())
 df_pass <- data.frame(c(countgroupbypass))
 #View(df_pass)
-plot(x = df_pass$passenger_count, y = df_pass$count, main = "Número de passageiros por corrida",
-     xlab = "Numero de passageiros", ylab = "Número de corridas")
 
 
-#Plot numero de corridas por dia da semana
-# groupby por dia da semana
+plot_ly(x = df_pass$passenger_count, y = df_pass$count, type = "scatter", mode = "lines") %>%
+  layout(
+    title = "Número de corridas por número de passageiros",
+    scene = list(
+      xaxis = list(title = "Número de passageiros"),
+      yaxis = list(title = "Número de corridas")
+      ))
+
+#Conclusão
+# a grande maioria das corridas de taxi tem apenas 1 passageiro
+
+#curiosidades
+# 60 corridas não tiveram passageiros. Será que o taxista só foi pegar uma pizza??
+# Há apenas 1 corrida com 8 e outra corrida com 9 pessoas. É um taxi ou uma lotação???
+
+
+
+#Plot numero de corridas pelo dia da semana
+# groupby do numero de passageiros
 groupbyDOW <- group_by(df, dayofweek_pickup)
 countgroupbyDOW <- summarise(groupbyDOW, count = n())
 df_DOW <- data.frame(c(countgroupbyDOW))
 View(df_DOW)
 
-plot(x = df_DOW$dayofweek_pickup, y = df_DOW$count, main = "Número de corridas pelo dia da semana",
-     xlab = "Nome do dia da semana", ylab = "Número de corridas")
+plot_ly(x = df_DOW$dayofweek_pickup, y = df_DOW$count)
+# Conclusão: 
+#Há mais corridas durante o fim de semana (sexta, sabado e domingo) do que os outros dias da semana
+#o dia que tem menos corrida é segunda-feira
+
 
 
 #Plot numero de corridas por mes
@@ -218,8 +180,8 @@ countgroupbyDOM <- summarise(groupbyDOM, count = n())
 df_DOM <- data.frame(c(countgroupbyDOM))
 View(df_DOM)
 
-plot(x = df_DOM$month_pickup, y = df_DOM$count, main = "Número de corridas por mês",
-     xlab = "Numero do mês", ylab = "Número de corridas")
+plot_ly(x = df_DOM$month_pickup, y = df_DOM$count, type = "bar")
+
 
 
 #Plot numero de corridas pelo hora do dia
@@ -229,14 +191,21 @@ countgroupbyHOD <- summarise(groupbyHOD, count = n())
 df_HOD <- data.frame(c(countgroupbyHOD))
 View(df_HOD)
 
-plot(x = df_HOD$hour_pickup, y = df_HOD$count, main = "Número de corridas por horas do dia"
-     ,xlab = "Horas do dia", ylab = "Número de corridas")
+plot_ly(x = df_HOD$hour_pickup, y = df_HOD$count, type = "scatter")
+
+#Conclusão
+# a maioria das corridas acontecem entre 18 e 22 horas
+# entre 1 e 6 da manha são os horarios com menos corridas
+
 
 #Plot Tempo médio das corridas pela hora do dia
 countgroupbyHOD1 <- summarise(groupbyHOD, Mean = mean(trip_duration))
 countgroupbyHOD1
-View(countgroupbyHOD1)
-plot(x = df_HOD$hour_pickup, y = countgroupbyHOD1$Mean, main = "Tempo médio das corridas pela hora do dia"
-     ,xlab = "Horas do dia", ylab = "Tempo médio das corridas")
+#View(countgroupbyHOD1)
+plot_ly(x = df_HOD$hour_pickup, y = countgroupbyHOD1$Mean, type = "scatter", showlegend = TRUE, linetype = "1")
 
+
+# Conclusão
+#Apos as 4 da manhã até as 8 da manhã, o tempo médio de uma corrida é menor que os outros horarios
+#Das 10 as 18 horas, o tempo médio de uma corrida é maior do que os outros horarios
 
