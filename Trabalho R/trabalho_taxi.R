@@ -209,3 +209,9 @@ plot_ly(x = df_HOD$hour_pickup, y = countgroupbyHOD1$Mean, type = "scatter", sho
 #Apos as 4 da manhã até as 8 da manhã, o tempo médio de uma corrida é menor que os outros horarios
 #Das 10 as 18 horas, o tempo médio de uma corrida é maior do que os outros horarios
 
+head(df)
+filter(df, is.na(pickup_longitude))
+filter(df, is.na(pickup_latitude))
+filter(df, is.na(dropoff_longitude))
+filter(df, is.na(dropoff_latitude))
+       
