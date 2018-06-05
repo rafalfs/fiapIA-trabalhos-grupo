@@ -55,7 +55,7 @@ df$tripdurationinhour <- abc
 #df$begin_end_dist_meter <- distCosine(c(df$pickup_longitude, df$pickup_latitude), c(df$dropoff_longitude, df$dropoff_latitude))
 
 #Visualizar os dados
-View(df)
+#View(df)
 #head(df)
 
 #locationsteste <- st_as_sf(locations, coords = c(-73.98519,40.75818), crs = 4326)
@@ -178,10 +178,13 @@ plot_ly(x = df_DOW$dayofweek_pickup, y = df_DOW$count)
 groupbyDOM <- group_by(df, month_pickup)
 countgroupbyDOM <- summarise(groupbyDOM, count = n())
 df_DOM <- data.frame(c(countgroupbyDOM))
-View(df_DOM)
+#View(df_DOM)
 
 plot_ly(x = df_DOM$month_pickup, y = df_DOM$count, type = "bar")
 
+# Conclusão
+# No mês de janeiro, menos corridas em relação aos outros meses. Isso pode ser explicado pelo inverno rigoroso
+# Ja o mês de março, foi o maior mês
 
 
 #Plot numero de corridas pelo hora do dia
@@ -209,9 +212,36 @@ plot_ly(x = df_HOD$hour_pickup, y = countgroupbyHOD1$Mean, type = "scatter", sho
 #Apos as 4 da manhã até as 8 da manhã, o tempo médio de uma corrida é menor que os outros horarios
 #Das 10 as 18 horas, o tempo médio de uma corrida é maior do que os outros horarios
 
+#verifica se as colunas de latitude e longitude não tem registro vazio
 head(df)
 filter(df, is.na(pickup_longitude))
 filter(df, is.na(pickup_latitude))
 filter(df, is.na(dropoff_longitude))
 filter(df, is.na(dropoff_latitude))
-       
+
+df1 <- df
+# Qual é o horario que mais tem corrida com somente 1 passageiro
+df1 <- filter(df1, passenger_count == 1)
+groupbyHODrunw1pax <- group_by(df1, hour_pickup)
+countgroupbyHODrunw1pax <- summarise(groupbyHODrunw1pax, count = n())
+df_HODrunw1pax <- data.frame(c(countgroupbyHODrunw1pax))
+
+df2 <- df
+# Qual é o horario que mais tem corrida com somente 2 passageiro
+df2 <- filter(df2, passenger_count == 2)
+groupbyHODrunw2pax <- group_by(df2, hour_pickup)
+countgroupbyHODrunw2pax <- summarise(groupbyHODrunw2pax, count = n())
+df_HODrunw2pax <- data.frame(c(countgroupbyHODrunw2pax))
+
+df3 <- df
+# Qual é o horario que mais tem corrida com somente 3 passageiro
+df3 <- filter(df3, passenger_count == 3)
+groupbyHODrunw3pax <- group_by(df3, hour_pickup)
+countgroupbyHODrunw3pax <- summarise(groupbyHODrunw3pax, count = n())
+df_HODrunw3pax <- data.frame(c(countgroupbyHODrunw3pax))
+
+plot_ly(x = df_HODrunw1pax$hour_pickup, y = df_HODrunw1pax$count, type = "scatter", showlegend = TRUE, linetype = "1") %>%
+  add_trace(x = df_HODrunw2pax$hour_pickup, y = df_HODrunw2pax$count) %>%
+  add_trace(x = df_HODrunw3pax$hour_pickup, y = df_HODrunw3pax$count)
+
+
