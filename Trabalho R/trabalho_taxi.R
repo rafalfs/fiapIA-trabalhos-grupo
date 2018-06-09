@@ -29,6 +29,55 @@ df = data.frame(train_db)
 #weather_db = read_csv("train/weather_nyc_2016.csv",locale = locale(encoding = "ISO-8859-1"))
 #df_weather = data.frame(weather_db)
 
+################################ ENRIQUECIMENTO DO DATASET ################################
+
+# Carga do dataset meteorológico
+weather_db = read_csv("data/datasets/weather_nyc_2016.csv",locale = locale(encoding = "ISO-8859-1"))
+df_weather = data.frame(weather_db)
+
+# Carga do dataset de feriados
+holidays_db = read_csv("data/datasets/holidays.csv",locale = locale(encoding = "ISO-8859-1"))
+df_holidays = data.frame(holidays_db)
+
+# Conversão das datas, temperaturas e flags de chuva e neve
+df_weather %>%
+  mutate(date = dmy(date),
+         rain = as.numeric(ifelse(precipitation == "T", "0.01", precipitation)),
+         snow_fall = as.numeric(ifelse(snow.fall == "T", "0.01", snow.fall)),
+         snow_depth = as.numeric(ifelse(snow.depth == "T", "0.01", snow.depth)),
+         all_precip = snow_fall + rain,
+         has_snow = (snow_fall > 0) | (snow_depth > 0),
+         has_rain = rain > 0,
+         max_temp = fahrenheit.to.celsius(maximum.temerature),
+         min_temp = fahrenheit.to.celsius(minimum.temperature),
+         avg_temp = fahrenheit.to.celsius(average.temperature)) -> df_weather
+
+# Conversão da data do dataset de treino para fazer o join com os outro datasets posteriormente
+df %>% 
+  mutate(date = as.Date(ymd_hms(pickup_datetime))) -> df
+
+# Seleciona somente as colunas do dataset meteorológico que nos interessam
+weather <- df_weather %>%
+  select(date, rain, snow_fall, all_precip, has_snow, has_rain, snow_depth, max_temp, min_temp)
+
+# Join do dataset de treino com o dataset meteorológico
+df = left_join(df, weather, by = "date")
+
+# Renomeia algumas colunas do dataset
+colnames(df_holidays)[1] = "holiday_weekday"
+colnames(df_holidays)[3] = "holiday"
+
+# Converte a data do dataset para o formato do lubridate
+df_holidays %>% 
+  mutate(date = ymd(date)) -> df_holidays
+
+# Join do dataset de treino com o dataset de feriados
+df = left_join(df, df_holidays, by = "date")
+
+View(df)
+
+############################## FIM ENRIQUECIMENTO DO DATASET ##############################
+
 # Adicionar uma coluna dayofweek para colocar qual o dia da semana
 df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
 df$dayofweek_dropoff <- weekdays(as.Date(df$dropoff_datetime))
