@@ -23,6 +23,9 @@ import("plotly")
 import("geosphere")
 
 
+
+
+
 train_db <- read_csv("train/train.csv",locale = locale(encoding = "ISO-8859-1"))
 df = data.frame(train_db)
 
@@ -74,9 +77,87 @@ df_holidays %>%
 # Join do dataset de treino com o dataset de feriados
 df = left_join(df, df_holidays, by = "date")
 
-View(df)
+
+# Funções para calcular a distancia em km a partir de 2 coordenadas (latitude e longitude)
+deg2rad = function (deg) {
+  return(deg * (pi/180))
+}
+getDistanceFromLatLonInKm = function (lat1,lon1,lat2,lon2) {
+  raio = 6371 # raio da terra em km
+  dLat = deg2rad(lat2-lat1)
+  dLon = deg2rad(lon2-lon1) 
+  a = sin(dLat/2) * sin(dLat/2) +
+    cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * 
+    sin(dLon/2) * sin(dLon/2)
+  
+  c = 2 * atan2(sqrt(a), sqrt(1-a));
+  d = raio * c;
+  return(d);
+}
+
+# calcula a distancia euclidiana, distancia de manhattan e KMs percorridos
+df %>% 
+  mutate(dist_eucl = sqrt((pickup_longitude - dropoff_longitude) ** 2 + (pickup_latitude - dropoff_latitude) ** 2),
+         dist_manh = abs(pickup_longitude - dropoff_longitude) + abs(pickup_latitude - dropoff_latitude),
+         dist_km = getDistanceFromLatLonInKm(pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude),
+        ) -> df
 
 ############################## FIM ENRIQUECIMENTO DO DATASET ##############################
+
+############################## SEPARACAO DOS QUADRANTES ###################################
+
+verificarSeLatLonEstaEmNY = function(lat, lon){
+  if(lat > 40.496423 && lat < 40.899755 &&
+     lon > -74.258301 && lon < -73.702518)
+    return(TRUE)
+  else return(FALSE)
+}
+
+obterQuadranteLatLon = function(lat, lon){
+  if(!verificarSeLatLonEstaEmNY(lat, lon))
+    return(NULL)
+  
+  lat.inicial = 40.496423
+  lon.inicial = -74.258301
+  lat.final = 40.899755
+  lon.final = -73.702518
+  incremento = 0.000045
+  
+  lat.pos = ceiling((lat - lat.inicial) / incremento)
+  lon.pos = ceiling((lon - lon.inicial) / incremento)
+  
+  quadrante = (lat.pos-1) * ((lon.final - lon.inicial) / incremento) + lon.pos
+  return(quadrante)
+}
+
+lat = 40.496470
+lon = -74.25827
+lat.inicial = 40.496423
+lon.inicial = -74.258301
+lat.final = 40.899755
+lon.final = -73.702518
+incremento = 0.000045
+
+lat.pos = ceiling((lat - lat.inicial) / incremento)
+lon.pos = ceiling((lon - lon.inicial) / incremento)
+
+quadrante = (lat.pos-1) * ((lon.final - lon.inicial) / incremento) + lon.pos
+
+obterQuadranteLatLon(40.496470, -74.25827)
+
+############################## FIM SEPARACAO DOS QUADRANTES ###############################
+
+######################################## SUBSETS ##########################################
+
+#filtra todas as corridas em dias de neve e feriado
+df_snowholydays = df %>% 
+  filter(has_snow == TRUE & !is.na(holiday_weekday))
+
+
+
+View(df_snowholydays)
+
+##################################### FIM SUBSETS##########################################
 
 # Adicionar uma coluna dayofweek para colocar qual o dia da semana
 df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
