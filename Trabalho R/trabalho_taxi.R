@@ -73,11 +73,40 @@ df_holidays %>%
 # Join do dataset de treino com o dataset de feriados
 df = left_join(df, df_holidays, by = "date")
 
-View(df)
+
+
+# Funções para calcular a distancia em km a partir de 2 coordenadas (latitude e longitude)
+deg2rad = function (deg) {
+  return(deg * (pi/180))
+}
+getDistanceFromLatLonInKm = function (lat1,lon1,lat2,lon2) {
+  raio = 6371 # raio da terra em km
+  dLat = deg2rad(lat2-lat1)
+  dLon = deg2rad(lon2-lon1) 
+  a = sin(dLat/2) * sin(dLat/2) +
+    cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * 
+    sin(dLon/2) * sin(dLon/2)
+  
+  c = 2 * atan2(sqrt(a), sqrt(1-a));
+  d = raio * c;
+  return(d);
+}
+
+# calcula a distancia euclidiana, distancia de manhattan e KMs percorridos
+df %>% 
+  mutate(dist_eucl = sqrt((pickup_longitude - dropoff_longitude) ** 2 + (pickup_latitude - dropoff_latitude) ** 2),
+         dist_manh = abs(pickup_longitude - dropoff_longitude) + abs(pickup_latitude - dropoff_latitude),
+         dist_km = getDistanceFromLatLonInKm(pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude)
+  ) -> df
 
 ############################## FIM ENRIQUECIMENTO DO DATASET ##############################
 
 ############################## SEPARACAO DOS QUADRANTES ###################################
+
+#Fizemos utilizando os 900m quadrados para cada quadrante. Para isso ao invés de criar um
+#dataframe com todos os quadrantes, pois seriam milhões de quadrantes,
+#fizemos uma função matemática para calcular o quadrante dado um ponto inicial 
+#e um ponto final no mapa (abrangendo a cidade de new york)
 
 verificarSeLatLonEstaEmNY = function(lat, lon){
   if(lat > 40.496423 && lat < 40.899755 &&
@@ -94,7 +123,7 @@ obterQuadranteLatLon = function(lat, lon){
   lon.inicial = -74.258301
   lat.final = 40.899755
   lon.final = -73.702518
-  incremento = 0.000045
+  incremento = 0.000270
   
   lat.pos = ceiling((lat - lat.inicial) / incremento)
   lon.pos = ceiling((lon - lon.inicial) / incremento)
@@ -103,20 +132,9 @@ obterQuadranteLatLon = function(lat, lon){
   return(quadrante)
 }
 
-lat = 40.496470
-lon = -74.25827
-lat.inicial = 40.496423
-lon.inicial = -74.258301
-lat.final = 40.899755
-lon.final = -73.702518
-incremento = 0.000045
-
-lat.pos = ceiling((lat - lat.inicial) / incremento)
-lon.pos = ceiling((lon - lon.inicial) / incremento)
-
-quadrante = (lat.pos-1) * ((lon.final - lon.inicial) / incremento) + lon.pos
-
-obterQuadranteLatLon(40.496470, -74.25827)
+df %>% 
+  mutate(quadrante_origem = obterQuadranteLatLon(pickup_latitude, pickup_longitude),
+         quadrante_destino = obterQuadranteLatLon(dropoff_latitude, dropoff_longitude)) -> df
 
 ############################## FIM SEPARACAO DOS QUADRANTES ###############################
 
