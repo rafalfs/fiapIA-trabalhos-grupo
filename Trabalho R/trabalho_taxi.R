@@ -138,18 +138,6 @@ df %>%
 
 ############################## FIM SEPARACAO DOS QUADRANTES ###############################
 
-######################################## SUBSETS ##########################################
-
-#filtra todas as corridas em dias de neve e feriado
-df_snowholydays = df %>% 
-  filter(has_snow == TRUE & !is.na(holiday_weekday))
-
-
-
-View(df_snowholydays)
-
-##################################### FIM SUBSETS##########################################
-
 # Adicionar uma coluna dayofweek para colocar qual o dia da semana
 df$dayofweek_pickup <- weekdays(as.Date(df$pickup_datetime))
 df$dayofweek_dropoff <- weekdays(as.Date(df$dropoff_datetime))
@@ -190,71 +178,99 @@ df$tripdurationinhour <- abc
 #                lon=c(3.09319, 3.011473, 3.031529))
 
 # Point of interest
-#1. John F Kennedy Airport
-poi1_coord <- data.frame(lat=c(40.6441666667),long=c(-73.7822222222))
-
+#1. John F Kennedy Airport terminal 4
 #2. Central Park
-poi2_coord <- data.frame(lat=c(40.785091),long=c(-73.968285))
-
 #3. Times Square
-poi3_coord <- data.frame(lat=c(40.758896),long=c(-73.985130))
-
 #4. Broadway Theatre
-poi4_coord <- data.frame(lat=c(40.753496986),long=c(-73.985162726))
-
 #5. Wall Street Charging Bull
-poi5_coord <- data.frame(lat=c(40.705576),long=c(-74.013421))
-
 #6. Rockefeller Center
-poi6_coord <- data.frame(lat=c(40.758740),long=c(-73.978674))
-
 #7. Macy'S Herald Square Store
-poi7_coord <- data.frame(lat=c(40.750782),long=c(-73.988959))
-
 #8. Bank of America Tower
-poi8_coord <- data.frame(lat=c(40.755604),long=c(-73.984932))
-
 #9. NATIONAL SEPTEMBER 11 MEMORIAL
-poi9_coord <- data.frame(lat=c(40.7070138386),long=c(-74.008166634))
-
 #10. Bryant Park
-poi10_coord <- data.frame(lat=c(40.755603),long=c(-73.984931))
-
 #11. Statue of Liberty National Monument
-poi11_coord <- data.frame(lat=c(40.689247),long=c(-74.044502))
-
 #12. AMERICAN MUSEUM OF NATURAL HISTORY
-poi12_coord <- data.frame(lat=c(40.7749969),long=c(-73.971496114))
-
 #13. World Trade Center'S Liberty Park
-poi13_coord <- data.frame(lat=c(40.710440),long=c(-74.013851))
-
-#14. World Trade Center'S Liberty Park
-poi14_coord <- data.frame(lat=c(40.7558303),long=c(-73.97416277))
-
+#14. 5 Avenue-Bryant Park Station
 #15. Madison Square Garden
-poi15_coord <- data.frame(lat=c(40.750298),long=c(-73.993324))
+poi_coord <- data.frame(lat=c(40.6441666667, 
+                              40.785383,
+                              40.758896,
+                              40.763262,
+                              40.705576,
+                              40.758740,
+                              40.750782,
+                              40.755604,
+                              40.7070138386,
+                              40.755603,
+                              40.689247,
+                              40.7749969,
+                              40.710440,
+                              40.753907,
+                              40.750298),
+                        long=c(-73.7822222222, 
+                               -73.969336,
+                               -73.985130,
+                               -73.983067,
+                               -74.013421,
+                               -73.978674,
+                               -73.988959,
+                               -73.984932,
+                               -74.008166634,
+                               -73.984931,
+                               -74.044502,
+                               -73.971496114,
+                               -74.013851,
+                               -73.981929,
+                               -73.993324), 
+                        quadrante = c(obterQuadranteLatLon(40.6441666667, -73.7822222222),
+                                      obterQuadranteLatLon(40.785383,-73.969336),
+                                      obterQuadranteLatLon(40.758896,-73.985130),
+                                      obterQuadranteLatLon(40.763262,-73.983067),
+                                      obterQuadranteLatLon(40.705576,-74.013421),
+                                      obterQuadranteLatLon(40.758740,-73.978674),
+                                      obterQuadranteLatLon(40.750782,-73.988959),
+                                      obterQuadranteLatLon(40.755604,-73.984932),
+                                      obterQuadranteLatLon(40.7070138386,-74.008166634),
+                                      obterQuadranteLatLon(40.755603,-73.984931),
+                                      obterQuadranteLatLon(40.689247,-74.044502),
+                                      obterQuadranteLatLon(40.7749969,-73.971496114),
+                                      obterQuadranteLatLon(40.710440,-74.013851),
+                                      obterQuadranteLatLon(40.753907,-73.981929),
+                                      obterQuadranteLatLon(40.750298,-73.993324)))
+
+
+######################################## SUBSETS ##########################################
+
+#filtra todas as corridas com origem ou destino para um dos pontos de interesse mapeados
+df_subset = df %>% 
+  filter(quadrante_origem %in% poi_coord$quadrante |
+         quadrante_destino %in% poi_coord$quadrante) -> df_subset
 
 
 
-b <- get_map("New York city,United States",maptype="terrain",source="google",force = ifelse(source == "google", TRUE, TRUE))
+View(df_snowholydays)
+
+##################################### FIM SUBSETS##########################################
 
 
-ggmap(b) + geom_point(data=poi1_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi2_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi3_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi4_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi5_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi6_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi7_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi8_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi9_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi10_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi11_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi12_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi13_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi14_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
-  geom_point(data=poi15_coord, aes(x=long, y=lat, color = "blue", size = 2.0), shape = 16, show.legend = FALSE)
+#Plot dos pontos de interesse no mapa
+b <- get_map("New York,United States",maptype="terrain",source="google",force = ifelse(source == "google", TRUE, TRUE))
+ggmap(b) + geom_point(data=poi_coord, aes(x=long[1], y=lat[1], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[2], y=lat[2], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[3], y=lat[3], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[4], y=lat[4], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[5], y=lat[5], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[6], y=lat[6], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[7], y=lat[7], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[8], y=lat[8], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[9], y=lat[9], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[10], y=lat[10], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[11], y=lat[11], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[12], y=lat[12], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[13], y=lat[13], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[14], y=lat[14], color = "blue", size = 2.0), shape = 16, show.legend = FALSE) +
+  geom_point(data=poi_coord, aes(x=long[15], y=lat[15], color = "blue", size = 2.0), shape = 16, show.legend = FALSE)
 
 
 #Plot numero de corridas por numero de passageiros
