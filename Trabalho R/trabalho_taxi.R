@@ -374,7 +374,6 @@ filter(df, is.na(pickup_latitude))
 filter(df, is.na(dropoff_longitude))
 filter(df, is.na(dropoff_latitude))
 
-
 #Grafico para mostrar a quantidade de corridas com 1, 2 ou 3 passageiros ao longo do dia
 
 df1 <- df

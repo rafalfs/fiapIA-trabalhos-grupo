@@ -1,0 +1,443 @@
+---
+title: "Trabalho R - FIAP - 1IA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Importação das bibliotecas utilizadas
+
+```{r}
+import = function(libName){
+  result = tryCatch({
+    library(libName, character.only = T)
+  }, error = function(e) {
+    install.packages(libName, repos = "http://cran.us.r-project.org")
+    library(libName, character.only = T)
+  })
+}
+
+import("readr")
+import("ggmap")
+import("ggplot2")
+import("mapview")
+import("sf")
+import("dplyr")
+import("shiny")
+import("lubridate")
+import("weathermetrics")
+import("magrittr")
+import("plotly")
+import("geosphere")
+```
+
+# 1. Enriquecimento dos dados
+
+## 1.1. Carga dos datasets para dataframes
+
+Primeiramente fizemos a carga do dataset de treino
+
+```{r}
+train_db = read_csv("data/train/train.csv",locale = locale(encoding = "ISO-8859-1"))
+df_train = data.frame(train_db)
+```
+
+E em seguida do dataset de dados meteorológicos utilizados para enriquecimento da nossa base
+O Dataset está disponível em: https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=3&cad=rja&uact=8&ved=0ahUKEwiOkfaq9KbbAhWHH5AKHfxLA_gQFgg0MAI&url=https%3A%2F%2Fkaggle2.blob.core.windows.net%2Fforum-message-attachments%2F205166%2F6860%2Fweather_data_nyc_centralpark_2016.csv&usg=AOvVaw3q_fypt-TvzObsOwukL8FU
+
+```{r}
+weather_db = read_csv("data/datasets/weather_nyc_2016.csv",locale = locale(encoding = "ISO-8859-1"))
+df_weather = data.frame(weather_db)
+```
+
+Fizemos também o enriquecimento da base com dados de feriados em New York
+Montamos um csv com os dados da seguinte fonte: https://www.officeholidays.com/countries/usa/regional.php?list_year=2016&list_region=New%20York
+
+```{r}
+holidays_db = read_csv("data/datasets/holidays.csv",locale = locale(encoding = "ISO-8859-1"))
+df_holidays = data.frame(holidays_db)
+```
+
+## 1.2. Enriquecimento com dados meteorológicos
+
+Fizemos o tratamento dos dados climáticos para converter a data para um objeto do lubridate, conversão da temperatura de fahrenheit para celcius, substituir o "T" que indica um baixo índice para um valor pequeno e fizemos uma flag indicando se choveu ou se nevou
+
+```{r}
+df_weather %>%
+  mutate(date = dmy(date),
+         rain = as.numeric(ifelse(precipitation == "T", "0.01", precipitation)),
+         snow_fall = as.numeric(ifelse(snow.fall == "T", "0.01", snow.fall)),
+         snow_depth = as.numeric(ifelse(snow.depth == "T", "0.01", snow.depth)),
+         all_precip = snow_fall + rain,
+         has_snow = (snow_fall > 0) | (snow_depth > 0),
+         has_rain = rain > 0,
+         max_temp = fahrenheit.to.celsius(maximum.temerature),
+         min_temp = fahrenheit.to.celsius(minimum.temperature),
+         avg_temp = fahrenheit.to.celsius(average.temperature)) -> df_weather
+```
+
+Conversão da data do dataset de treino para lubridate para posteriormente fazer o join com o dataset de dados meteorológicos pela data
+
+```{r}
+df_train %>% 
+  mutate(date = as.Date(ymd_hms(pickup_datetime))) -> df_train
+```
+
+Seleção apenas das colunas que queremos acrescentar ao dataset de treino
+
+```{r}
+weather <- df_weather %>%
+  select(date, rain, snow_fall, all_precip, has_snow, has_rain, snow_depth, max_temp, min_temp, avg_temp)
+```
+
+Join do dataset meteorológico com o dataset de treino pela data
+
+```{r}
+df_train = left_join(df_train, weather, by = "date")
+```
+
+## 1.3. Enriquecimento com feriados
+
+Renomeamos alguns campos para facilitar a visualização e convertemos a data para o formato do lubridate
+
+```{r}
+colnames(df_holidays)[1] = "holiday_weekday"
+colnames(df_holidays)[3] = "holiday"
+
+df_holidays %>% 
+  mutate(date = ymd(date)) -> df_holidays
+```
+
+Fazemos o join da nossa base de treinamento com nossa base de feriados
+
+```{r}
+df_train = left_join(df_train, df_holidays, by = "date")
+```
+
+## 1.4. Cálculo das distâncias de origem e destino
+
+Primeiramente criamos uma função para calcular a distância em quilômetros dos pontos de partida e chegada das corridas. Esta função leva em conta o grau de curvatura da terra.
+
+```{r}
+deg2rad = function (deg) {
+  return(deg * (pi/180))
+}
+getDistanceFromLatLonInKm = function (lat1,lon1,lat2,lon2) {
+  raio = 6371 # raio da terra em km
+  dLat = deg2rad(lat2-lat1)
+  dLon = deg2rad(lon2-lon1) 
+  a = sin(dLat/2) * sin(dLat/2) +
+    cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * 
+    sin(dLon/2) * sin(dLon/2)
+  
+  c = 2 * atan2(sqrt(a), sqrt(1-a));
+  d = raio * c;
+  return(d);
+}
+```
+
+Em seguida criamos três novos campos no dataframe com as distâncias euclidiana, manhatan e em quilômetros.
+
+```{r}
+df_train %>% 
+  mutate(dist_eucl = sqrt((pickup_longitude - dropoff_longitude) ** 2 + (pickup_latitude - dropoff_latitude) ** 2),
+         dist_manh = abs(pickup_longitude - dropoff_longitude) + abs(pickup_latitude - dropoff_latitude),
+         dist_km = getDistanceFromLatLonInKm(pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude)
+  ) -> df_train
+```
+
+## 1.5. Separação dos quadrantes
+
+Fizemos a separação da cidade em quadrantes de aproximadamente 1km quadrado e guardamos no dataset em qual quadrante se encontra os pontos de origem e de destino da corrida.
+Para calcular em qual quadrante um ponto se encontra, utilizamos uma função matemática que determina a qual quadrante ele pertence dado um ponto inicial e um ponto final de toda a área da cidade e o tamanho dos quadrantes.
+
+```{r}
+verificarSeLatLonEstaEmNY = function(lat, lon){
+  if(lat > 40.496423 && lat < 40.899755 &&
+     lon > -74.258301 && lon < -73.702518)
+    return(TRUE)
+  else return(FALSE)
+}
+
+obterQuadranteLatLon = function(lat, lon){
+  if(!verificarSeLatLonEstaEmNY(lat, lon))
+    return(NULL)
+  
+  lat.inicial = 40.496423
+  lon.inicial = -74.258301
+  lat.final = 40.899755
+  lon.final = -73.702518
+  incremento = 0.000270
+  
+  lat.pos = ceiling((lat - lat.inicial) / incremento)
+  lon.pos = ceiling((lon - lon.inicial) / incremento)
+  
+  quadrante = (lat.pos-1) * ((lon.final - lon.inicial) / incremento) + lon.pos
+  return(quadrante)
+}
+
+df_train %>% 
+  mutate(quadrante_origem = obterQuadranteLatLon(pickup_latitude, pickup_longitude),
+         quadrante_destino = obterQuadranteLatLon(dropoff_latitude, dropoff_longitude)) -> df_train
+```
+
+Criamos também um dataframe com 15 pontos de interesse em New York e calculamos a qual quadrante eles pertencem.
+Os pontos de interesse são os seguintes:
+1. John F Kennedy Airport terminal 4
+2. Central Park
+3. Times Square
+4. Broadway Theatre
+5. Wall Street Charging Bull
+6. Rockefeller Center
+7. Macy'S Herald Square Store
+8. Bank of America Tower
+9. NATIONAL SEPTEMBER 11 MEMORIAL
+10. Bryant Park
+11. Statue of Liberty National Monument
+12. AMERICAN MUSEUM OF NATURAL HISTORY
+13. World Trade Center'S Liberty Park
+14. 5 Avenue-Bryant Park Station
+15. Madison Square Garden
+
+```{r}
+poi_coord <- data.frame(lat=c(40.6441666667, 
+                              40.785383,
+                              40.758896,
+                              40.763262,
+                              40.705576,
+                              40.758740,
+                              40.750782,
+                              40.755604,
+                              40.7070138386,
+                              40.755603,
+                              40.689247,
+                              40.7749969,
+                              40.710440,
+                              40.753907,
+                              40.750298),
+                        long=c(-73.7822222222, 
+                               -73.969336,
+                               -73.985130,
+                               -73.983067,
+                               -74.013421,
+                               -73.978674,
+                               -73.988959,
+                               -73.984932,
+                               -74.008166634,
+                               -73.984931,
+                               -74.044502,
+                               -73.971496114,
+                               -74.013851,
+                               -73.981929,
+                               -73.993324), 
+                        quadrante = c(obterQuadranteLatLon(40.6441666667, -73.7822222222),
+                                      obterQuadranteLatLon(40.785383,-73.969336),
+                                      obterQuadranteLatLon(40.758896,-73.985130),
+                                      obterQuadranteLatLon(40.763262,-73.983067),
+                                      obterQuadranteLatLon(40.705576,-74.013421),
+                                      obterQuadranteLatLon(40.758740,-73.978674),
+                                      obterQuadranteLatLon(40.750782,-73.988959),
+                                      obterQuadranteLatLon(40.755604,-73.984932),
+                                      obterQuadranteLatLon(40.7070138386,-74.008166634),
+                                      obterQuadranteLatLon(40.755603,-73.984931),
+                                      obterQuadranteLatLon(40.689247,-74.044502),
+                                      obterQuadranteLatLon(40.7749969,-73.971496114),
+                                      obterQuadranteLatLon(40.710440,-74.013851),
+                                      obterQuadranteLatLon(40.753907,-73.981929),
+                                      obterQuadranteLatLon(40.750298,-73.993324)))
+```
+
+## 1.6. Criação e transformação de alguns campos do dataframe
+
+Criação de um campo com o dia da semana da corrida
+
+```{r}
+df_train$dayofweek_pickup <- weekdays(as.Date(df_train$pickup_datetime))
+df_train$dayofweek_dropoff <- weekdays(as.Date(df_train$dropoff_datetime))
+```
+
+Criação de campos com informações mais específicas da data e hora de partida e destino
+
+```{r}
+date <- as.Date(df_train$pickup_datetime)
+df_train$day_pickup <- format.Date(date, "%d")
+df_train$month_pickup <- format.Date(date, "%m")
+df_train$hour_pickup <- strftime(df_train$pickup_datetime, format="%H")
+df_train$minute_pickup <- strftime(df_train$pickup_datetime, format="%M")
+df_train$second_pickup <- second(df_train$pickup_datetime)
+df_train$hourmin_pickup <- paste(df_train$hour_pickup, df_train$minute_pickup, sep=":")
+
+date1 <- as.Date(df_train$dropoff_datetime)
+df_train$day_dropoff <- format.Date(date1, "%d")
+df_train$month_dropoff <- format.Date(date1, "%m")
+df_train$hour_dropoff <- strftime(df_train$dropoff_datetime, format="%H")
+df_train$minute_dropoff <- strftime(df_train$dropoff_datetime, format="%M")
+df_train$second_dropoff <- second(df_train$dropoff_datetime)
+df_train$hourmin_dropoff <- paste(df_train$hour_dropoff, df_train$minute_dropoff, sep=":")
+
+td <- seconds_to_period(df_train$trip_duration)
+abc <- sprintf('%02d %02d:%02d:%02d', day(td), td@hour, minute(td), second(td))
+df_train$tripdurationinhour <- abc
+```
+
+## 1.7. Subsets
+
+Criamos um subset com todas as corridas feitas em feriados
+
+```{r}
+df_train %>% 
+  filter(is.na(holiday) == FALSE) -> df_subset_holiday
+```
+
+Outro subset com todas as corridas em dias de chuva
+
+```{r}
+df_train %>% 
+  filter(has_rain == TRUE) -> df_subset_rain
+```
+
+# 2. Análise Exploratória e Análise Gráfica
+
+## 2.1. Número de corridas po número de passageiros
+
+Começamos com um gráfico exibindo o total de corridas por quantidade de passageiros
+
+```{r}
+groupbypass <- group_by(df_train, passenger_count)
+countgroupbypass <- summarise(groupbypass, count = n())
+df_pass <- data.frame(c(countgroupbypass))
+
+plot_ly(x = df_pass$passenger_count, y = df_pass$count, type = "scatter", mode = "lines") %>%
+layout(
+  title = "Número de corridas por número de passageiros",
+  scene = list(
+    xaxis = list(title = "Número de passageiros"),
+    yaxis = list(title = "Número de corridas")
+  ))
+```
+
+Nota-se que a grande maioria das corridas de taxi em NY é feita com somente um passageiro
+Algumas curiosidades:
+- Houveram 60 corridas sem passageiros
+- 1 corrida com 8 passageiros
+- 1 corrida com 9 passageiros
+
+## 2.2. Número de corridas por dia da semana
+
+Há mais corridas durante o fim de semana (sexta, sabado e domingo) do que os outros dias da semana
+o dia que tem menos corrida é segunda-feira
+
+```{r}
+groupbyDOW <- group_by(df_train, dayofweek_pickup)
+countgroupbyDOW <- summarise(groupbyDOW, count = n())
+df_DOW <- data.frame(c(countgroupbyDOW))
+
+plot_ly(x = df_DOW$dayofweek_pickup, y = df_DOW$count, type = "bar")
+```
+
+## 2.3. Número de corridas por mês do ano
+
+No mês de janeiro, menos corridas em relação aos outros meses. Isso pode ser explicado pelo inverno rigoroso. Ja o mês de março, foi o mês com o maior número de corridas
+
+```{r}
+groupbyDOM <- group_by(df_train, month_pickup)
+countgroupbyDOM <- summarise(groupbyDOM, count = n())
+df_DOM <- data.frame(c(countgroupbyDOM))
+
+plot_ly(x = df_DOM$month_pickup, y = df_DOM$count, type = "bar")
+```
+
+
+## 2.4. Número de corridas pela hora do dia
+
+A maioria das corridas acontecem entre 14 e 20 horas 
+Entre meia noite e 2 da manha são os horarios com menos corridas
+A quantidade de corridas começa a diminuir bastante a partir das 20h e volta a subir as 3 da manhã
+
+```{r}
+groupbyHOD <- group_by(df_train, hour_pickup)
+countgroupbyHOD <- summarise(groupbyHOD, count = n())
+df_HOD <- data.frame(c(countgroupbyHOD))
+
+plot_ly(x = df_HOD$hour_pickup, y = df_HOD$count, type = "scatter", mode="lines")
+```
+
+## 2.4. Número de corridas a cada 15 minutos do dia
+
+Semelhante ao gráfico anterior, não temos muitas variações em curtos períodos de tempo
+
+```{r}
+groupbyHOD15 <- group_by(df_train, hourmin_pickup)
+countgroupbyHOD15 <- summarise(groupbyHOD15, count = n())
+df_HOD15 <- data.frame(c(countgroupbyHOD15))
+df_HOD15sort <- df_HOD15[order(df_HOD15$hourmin_pickup),]
+
+plot_ly(x = df_HOD15sort$hourmin_pickup, y = df_HOD15sort$count, type = "scatter", mode="lines")
+```
+
+## 2.5. Tempo médio das corridas em função do horário
+
+Entre 2 e 4 da manhã o tempo médio de uma corrida é menor que os outros horarios
+Das 10 as 14 horas o tempo médio de uma corrida é maior do que em outros horarios
+
+```{r}
+countgroupbyHOD1 <- summarise(groupbyHOD, Mean = mean(trip_duration))
+plot_ly(x = df_HOD$hour_pickup, y = countgroupbyHOD1$Mean, type = "scatter", showlegend = TRUE, linetype = "1", mode="lines+markers")
+```
+
+## 2.6. Análise das corridas que mais acontecem em NY (1, 2 ou 3 passageiros)
+
+Filtramos os horários que tem mais corridas com 1, 2 ou 3 passageiros
+O horário de pico de corridas de taxi, independente do número de passageiros, se mostrou ser entre as 13 e 20 horas
+
+```{r}
+df1 <- filter(df_train, passenger_count == 1)
+groupbyHODrunw1pax <- group_by(df1, hour_pickup)
+countgroupbyHODrunw1pax <- summarise(groupbyHODrunw1pax, count = n())
+df_HODrunw1pax <- data.frame(c(countgroupbyHODrunw1pax))
+
+df2 <- filter(df_train, passenger_count == 2)
+groupbyHODrunw2pax <- group_by(df2, hour_pickup)
+countgroupbyHODrunw2pax <- summarise(groupbyHODrunw2pax, count = n())
+df_HODrunw2pax <- data.frame(c(countgroupbyHODrunw2pax))
+
+df3 <- filter(df_train, passenger_count == 3)
+groupbyHODrunw3pax <- group_by(df3, hour_pickup)
+countgroupbyHODrunw3pax <- summarise(groupbyHODrunw3pax, count = n())
+df_HODrunw3pax <- data.frame(c(countgroupbyHODrunw3pax))
+
+plot_ly(x = df_HODrunw1pax$hour_pickup, y = df_HODrunw1pax$count, type = "scatter", showlegend = TRUE, linetype = "1", mode="markers+lines") %>%
+  add_trace(x = df_HODrunw2pax$hour_pickup, y = df_HODrunw2pax$count) %>%
+  add_trace(x = df_HODrunw3pax$hour_pickup, y = df_HODrunw3pax$count)
+```
+
+## 2.7. Clusterização
+
+Criamos um dataframe para fazer uma análise de clusterização com os quadrantes de origem e a distância percorrida da viagem.
+
+```{r}
+df_subset_holiday %>% 
+  select(quadrante_origem, dist_km) -> df_cluster1
+
+plot_ly(x = df_cluster1$quadrante_origem, y = df_cluster1$dist_km, type = "scatter", mode="markers")
+```
+
+Retiramos os outliers para não prejudicar a análise
+
+```{r}
+df_cluster1 %>% 
+  filter(quadrante_origem > 800000 & quadrante_origem < 3100000 & dist_km < 30) -> df_cluster1
+
+plot_ly(x = df_cluster1$quadrante_origem, y = df_cluster1$dist_km, type = "scatter", mode="markers")
+```
+
+E temos os clusters de quadrantes de origem pela distancia percorrida.
+
+```{r}
+modelo.avgtemp_distkm = kmeans(df_cluster1, centers = 4)
+
+plot(df_cluster1, col=modelo.avgtemp_distkm$cluster, pch=21, cex=1)
+```
+
