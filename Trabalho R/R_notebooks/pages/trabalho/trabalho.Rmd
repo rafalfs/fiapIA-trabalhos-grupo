@@ -298,6 +298,13 @@ df_train %>%
   filter(has_rain == TRUE) -> df_subset_rain
 ```
 
+E um terceiro subset com todas as corridas cujo quadrante de origem ou destino da corrida seja um dos 15 pontos de interesse que selecionamos
+
+```{r}
+df_train %>% 
+  filter(quadrante_origem %in% poi_coord$quadrante | quadrante_destino %in% poi_coord$quadrante) -> df_subset_poi
+```
+
 # 2. Análise Exploratória e Análise Gráfica
 
 ## 2.1. Número de corridas po número de passageiros
@@ -415,28 +422,27 @@ plot_ly(x = df_HODrunw1pax$hour_pickup, y = df_HODrunw1pax$count, type = "scatte
 
 ## 2.7. Clusterização
 
-Criamos um dataframe para fazer uma análise de clusterização com os quadrantes de origem e a distância percorrida da viagem.
+Criamos um dataframe para fazer uma análise de clusterização com a distância em KM e o número de passageiros. Utilizamos o subset que contém somente as corridas cujo quadrante de origem ou destino seja um dos 15 pontos de interesse que selecionamos
 
 ```{r}
-df_subset_holiday %>% 
-  select(quadrante_origem, dist_km) -> df_cluster1
+df_subset_poi %>% 
+  select(dist_km, passenger_count) -> df_cluster
 
-plot_ly(x = df_cluster1$quadrante_origem, y = df_cluster1$dist_km, type = "scatter", mode="markers")
+plot_ly(x = df_cluster$dist_km, y = df_cluster$passenger_count, type = "scatter", mode="markers")
 ```
 
-Retiramos os outliers para não prejudicar a análise
+E temos os clusters da distancia percorrida pelo número de passageiros.
+Ele separou os clusters baseado principalmente nas distâncias das corridas.
+Para corridas mais curtas existem dois clusters que são separados pelo número de passageiros.
+Basicamente temos a seguinte segmentação:
+1 - Corridas curtas com poucos pasageiros (até 2)
+2 - Corridas curtas com muitos passageiros (3 ou mais)
+3 - Corridas de média distância
+4 - Corridas de longa distância
 
 ```{r}
-df_cluster1 %>% 
-  filter(quadrante_origem > 800000 & quadrante_origem < 3100000 & dist_km < 30) -> df_cluster1
-
-plot_ly(x = df_cluster1$quadrante_origem, y = df_cluster1$dist_km, type = "scatter", mode="markers")
-```
-
-E temos os clusters de quadrantes de origem pela distancia percorrida.
-
-```{r}
-modelo.avgtemp_distkm = kmeans(df_cluster1, centers = 4)
+set.seed(12)
+modelo.avgtemp_distkm = kmeans(df_cluster, centers=4)
 
 plot(df_cluster1, col=modelo.avgtemp_distkm$cluster, pch=21, cex=1)
 ```
