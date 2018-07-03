@@ -149,6 +149,7 @@ df$hour_pickup <- strftime(df$pickup_datetime, format="%H")
 df$minute_pickup <- strftime(df$pickup_datetime, format="%M")
 df$second_pickup <- second(df$pickup_datetime)
 df$hourmin_pickup <- paste(df$hour_pickup, df$minute_pickup, sep=":")
+df$coord_pickup <- paste(df$pickup_latitude, df$pickup_longitude, sep=",")
 
 date1 <- as.Date(df$dropoff_datetime)
 df$day_dropoff <- format.Date(date1, "%d")
@@ -157,21 +158,15 @@ df$hour_dropoff <- strftime(df$dropoff_datetime, format="%H")
 df$minute_dropoff <- strftime(df$dropoff_datetime, format="%M")
 df$second_dropoff <- second(df$dropoff_datetime)
 df$hourmin_dropoff <- paste(df$hour_dropoff, df$minute_dropoff, sep=":")
+df$coord_dropoff <- paste(df$dropoff_latitude, df$dropoff_longitude, sep=",")
 
 td <- seconds_to_period(df$trip_duration)
 abc <- sprintf('%02d %02d:%02d:%02d', day(td), td@hour, minute(td), second(td))
 df$tripdurationinhour <- abc
 
-#distancia entre pickup and dropoff
-#df$begin_end_dist_meter <- distCosine(c(df$pickup_longitude, df$pickup_latitude), c(df$dropoff_longitude, df$dropoff_latitude))
-
 #Visualizar os dados
 #View(df)
 #head(df)
-
-#locationsteste <- st_as_sf(locations, coords = c(-73.98519,40.75818), crs = 4326)
-#mapview(locationsteste)
-#?mapview
 
 
 #d <- data.frame(lat=c(50.659631, 50.607213, 50.608129),
@@ -331,7 +326,7 @@ plot_ly(x = df_DOM$month_pickup, y = df_DOM$count, type = "bar")
 groupbyHOD <- group_by(df, hour_pickup)
 countgroupbyHOD <- summarise(groupbyHOD, count = n())
 df_HOD <- data.frame(c(countgroupbyHOD))
-#View(df_HOD)
+#View(countgroupbyHOD)
 
 plot_ly(x = df_HOD$hour_pickup, y = df_HOD$count, type = "scatter")
 
@@ -339,18 +334,19 @@ plot_ly(x = df_HOD$hour_pickup, y = df_HOD$count, type = "scatter")
 # a maioria das corridas acontecem entre 18 e 22 horas
 # entre 1 e 6 da manha são os horarios com menos corridas
 
+#############################################################
 
 #Plot numero de corridas a cada 15 minutos do dia
-# groupby do numero da hora do dia
-#Plot numero de corridas a cada 15 minutos do dia
-# groupby do numero da hora do dia
-groupbyHOD15 <- group_by(df, hourmin_pickup)
-countgroupbyHOD15 <- summarise(groupbyHOD15, count = n())
-df_HOD15 <- data.frame(c(countgroupbyHOD15))
-df_HOD15sort <- df_HOD15[order(df_HOD15$hourmin_pickup),]
-#View(df_HOD15sort)
+tm <- seq(as.POSIXct("2012-06-01 00:00:00"), by = "15 min", length.out = 96)
+countdf <- data.frame ("Tempo" = c(tm), "corridas" = c(6466,5825,5408, 5268, 5217, 4488, 3989, 3538, 3499,3545, 3822, 4403, 4806, 6218, 8038, 9479, 9882, 11535, 13475, 14569, 14908, 15379, 16533, 16871, 16512,
+                                                       16696, 16899, 17522, 16164, 16189, 16505, 17190, 16281, 16455, 17239, 17754, 17429, 17629, 17516, 18238, 17601, 17727, 17898, 18107, 17688, 18504, 18469, 18705, 18498, 18241,
+                                                       17843, 17453, 17360, 16445, 16276, 16336, 17236, 17662, 18666, 19588, 20640, 21300, 21939, 22900, 22749, 23036, 22627, 22643, 21616, 21653, 21206, 21272, 21473, 21091, 20817, 21230, 
+                                                       20848, 20471, 20296, 19740, 19809, 18501, 17655, 17163, 16220, 14615, 13356, 12769, 11679, 11244,10013, 9385, 8704, 8033, 7323, 6946))
 
-plot_ly(x = df_HOD15sort$hourmin_pickup, y = df_HOD15sort$count, type = "scatter")
+plot_ly(x = countdf$Tempo, y = countdf$corridas, type = "scatter")
+
+
+#############################################################
 
 
 
